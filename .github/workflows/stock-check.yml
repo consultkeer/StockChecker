@@ -2,7 +2,7 @@ name: Stock Check Scheduler
 
 on:
   schedule:
-    # Runs every 6 hours
+    # Runs every minute
     - cron: "* * * * *"
   workflow_dispatch: # Allows manual triggering of the workflow from GitHub Actions
 
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Use the Python version compatible with your code
+          python-version: '3.9'
 
       # Install dependencies
       - name: Install dependencies
