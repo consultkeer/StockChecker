@@ -3,7 +3,7 @@ name: Stock Check Scheduler
 on:
   schedule:
     # Runs every minute
-    - cron: "* * * * *"
+    - cron: "0 */8 * * *"
   workflow_dispatch: # Allows manual triggering of the workflow from GitHub Actions
 
 jobs:
