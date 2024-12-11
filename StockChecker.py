@@ -18,7 +18,6 @@ def fetch_google_sheet(sheet_id, gid):
     response = requests.get(url)
     if response.status_code == 200:
         decoded_content = response.content.decode('utf-8')
-        # Using CSV reader to read the whole sheet as a list of rows
         reader = csv.reader(decoded_content.splitlines())
         return [row for row in reader]
     else:
@@ -41,7 +40,7 @@ def get_out_of_stock_items(urls):
             else:
                 product_name = "Unknown Product"
 
-            # Extract color (assuming the 'checked' input represents the selected color)
+            # Extract color (checked input indicates selected color)
             color_tag = soup.find('fieldset', class_='product-form__input', attrs={'data-product-attribute': 'set-rectangle'})
             color = "Unknown Color"
             if color_tag:
@@ -49,34 +48,38 @@ def get_out_of_stock_items(urls):
                 if checked_input:
                     color = checked_input.get('value', 'Unknown Color')
 
-            # Append color to product name
+            # Combine product name and color
             product_name_with_color = f"{product_name} ({color})"
 
-            # Find the button with the class 'product-form__submit' and check if it is disabled
+            # Check stock status
             button = soup.find('button', class_='product-form__submit')
-
-            # Check if button is found and has 'Sold out' text
             if button and 'Sold out' in button.get_text() and button.has_attr('disabled'):
-                out_of_stock_items.append(product_name_with_color)
+                out_of_stock_items.append((product_name_with_color, url))  # Append name with URL
         else:
             print(f"Failed to fetch the page for {url}")
 
     return out_of_stock_items
 
-# Send email
-def send_email(to_email, out_of_stock_items):
+# Send email with product names hyperlinked to their respective URLs
+def send_email(to_email, out_of_stock_items_with_urls):
     from_email = "consultkeerthan@gmail.com"
     from_password = "nevz gfbi ocqc sduh"
 
     subject = "Out of Stock Notification"
-    body = f"The following items are out of stock:\n\n" + "\n".join(out_of_stock_items)
+    
+    # Create the HTML email body with hyperlinks
+    body = "The following items are out of stock:<br><br>"
+    body += "<ul>"
+    for product_name, url in out_of_stock_items_with_urls:
+        body += f'<li><a href="{url}" target="_blank">{product_name}</a></li>'
+    body += "</ul>"
 
     message = MIMEMultipart()
     message['From'] = from_email
     message['To'] = to_email
     message['Subject'] = subject
 
-    message.attach(MIMEText(body, 'plain'))
+    message.attach(MIMEText(body, 'html'))  # Set email content type to HTML
 
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -110,12 +113,12 @@ def main():
     urls = url_data[0][0].split(',')      # URLs are in the first column of the URL sheet
 
     # Check stock status
-    out_of_stock_items = get_out_of_stock_items(urls)
+    out_of_stock_items_with_urls = get_out_of_stock_items(urls)
 
     # Send emails to all recipients
     for email in emails:
-        if out_of_stock_items:
-            send_email(email, out_of_stock_items)
+        if out_of_stock_items_with_urls:
+            send_email(email, out_of_stock_items_with_urls)
         else:
             print(f"No out-of-stock items to notify for {email}.")
 
